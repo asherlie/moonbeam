@@ -1,3 +1,7 @@
+/*
+ * TODO: use *.png to test this - code should auto detect the color that's new - 
+ * use https://pixlr.com/editor/ to create more test files
+*/
 /*compile with -lIL*/
 #include <IL/il.h>
 #include <stdint.h>
