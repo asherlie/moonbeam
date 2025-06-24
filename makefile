@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -Wall -Wextra -Wpedantic -Werror -Wno-unused-result -lIL
+CFLAGS= -Wall -Wextra -Wpedantic -Werror -Wno-unused-result -lIL -g3
 
 all: img
 

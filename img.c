@@ -19,18 +19,20 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    ilInit();
 	ilGenImages(1, &img_id);
 	ilBindImage(img_id);
 	if (!ilLoadImage(argv[1])) {
         puts("failed to open image");
 		return EXIT_FAILURE;
 	}
+
     width = ilGetInteger(IL_IMAGE_WIDTH);
     height = ilGetInteger(IL_IMAGE_HEIGHT);
     data = malloc(width * height * 3);
 
-    printf("copy returned: %i\n", ilCopyPixels(0, 0, 0, width, height, 1, IL_RGB, IL_UNSIGNED_BYTE, data));
     printf("image of size: %i X %i\n", width, height);
+    printf("copy returned: %i\n", ilCopyPixels(0, 0, 0, width, height, 1, IL_RGB, IL_UNSIGNED_BYTE, data));
 
     /*
      * i can make a map of all RGB combos - no should define a hashmap implementation
