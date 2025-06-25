@@ -9,6 +9,49 @@
 #include <stdlib.h>
 
 /*
+ * ideas:
+ *  hashmap with x% fudge factor - each bucket contains fuzzy rgb combos - (0-10,0-10,0-10) - etc.
+*/
+
+/* we can regnerate the pixmap over the same frames with differing fudge factors until we find a new RGB color
+ * starting with more granularity - start with very small fudge factor - this should also be a float perhaps
+ */
+struct pixmap{
+    uint8_t fudge_factor;
+
+    // there will be (255 / fudge_factor) buckets
+    /*struct pm_entry** buckets;*/
+    struct pm_bucket** buckets;
+
+};
+
+struct pm_bucket{
+    struct pm_entry* pixels;
+    int n_pixels;
+};
+
+/*should i record the RGB values of each bucket? i think so. can also just separate */
+struct pm_entry{
+    struct pm_entry* next;
+    uint8_t rgb[3];
+};
+
+void init_pixmap(struct pixmap* pm, uint8_t fudge_factor) {
+    pm->fudge_factor = fudge_factor;
+    pm->buckets = calloc((255 / fudge_factor), sizeof(struct pm_bucket*));
+}
+
+void insert_pixmap(struct pixmap* pm, uint8_t r, uint8_t g, uint8_t b) {
+    (void)pm;
+    (void)r;
+    (void)g;
+    (void)b;
+    /*int bucket_idx = 0;*/
+    /*pm->buckets[*/
+}
+
+
+/*
  * analyze all pixels, 
  * count number of pixels of each color - make a map!
 */
@@ -46,7 +89,7 @@ int main(int argc, char* argv[]) {
     // [4] - [8] is second row
     // LEFT TO RIGHT
     for (int i = 0; i < width * height; ++i) {
-        printf("data[%i]: [%i,%i,%i]\n", i, data[(i * 3)], data[1 + (i * 3)], data[2 + (i * 3)]);
+        /*printf("data[%i]: [%i,%i,%i]\n", i, data[(i * 3)], data[1 + (i * 3)], data[2 + (i * 3)]);*/
     }
 	ilDeleteImages(1, &img_id);
 
