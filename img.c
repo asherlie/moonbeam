@@ -133,6 +133,33 @@ void p_pixmap(struct pixmap* pm, _Bool print_all_pixels) {
  * count number of pixels of each color - make a map!
 */
 
+struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b) {
+    struct pixmap* pm;
+    int a_tmp, b_tmp;
+
+
+    if (pm_a->fudge_factor != pm_b->fudge_factor) {
+        return NULL;
+    }
+
+    pm = malloc(sizeof(struct pixmap));
+    init_pixmap(pm, pm_a->fudge_factor);
+
+    for (uint32_t i = 0; i < pm_a->n_buckets; ++i) {
+        a_tmp = pm_a->buckets[i] ? pm_a->buckets[i]->n_pixels : 0;
+        b_tmp = pm_b->buckets[i] ? pm_b->buckets[i]->n_pixels : 0;
+
+        if (a_tmp != b_tmp) {
+            printf("FOUND DISCREPANCY in bucket %i with example value of: (%i,%i,%i)\n", i,
+                   pm_a->buckets[i]->pixels->rgb[0], pm_a->buckets[i]->pixels->rgb[1], pm_a->buckets[i]->pixels->rgb[2]);
+        }
+    }
+
+    return pm;
+}
+
+
+/*write diff finder of two pixmaps! or maybe diff of two datums and build variable fuzziness maps*/
 int main(int argc, char* argv[]) {
     struct pixmap pm;
     ILuint img_id;
@@ -174,6 +201,7 @@ int main(int argc, char* argv[]) {
     }
 
     p_pixmap(&pm, 0);
+    pixmap_diff(&pm, &pm);
 
 	ilDeleteImages(1, &img_id);
 
