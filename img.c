@@ -6,6 +6,7 @@
 #include <IL/il.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 /*
@@ -32,22 +33,77 @@ struct pm_bucket{
 
 /*should i record the RGB values of each bucket? i think so. can also just separate */
 struct pm_entry{
+    // number of identical pixels
+    int n;
     struct pm_entry* next;
     uint8_t rgb[3];
 };
 
 void init_pixmap(struct pixmap* pm, uint8_t fudge_factor) {
+    uint32_t n_buckets = 0;
+    uint8_t* nb_b = (uint8_t*)&n_buckets;
+
     pm->fudge_factor = fudge_factor;
-    pm->buckets = calloc((255 / fudge_factor), sizeof(struct pm_bucket*));
+
+    nb_b[0] = 255 / fudge_factor;
+    nb_b[1] = 255 / fudge_factor;
+    nb_b[2] = 255 / fudge_factor;
+
+    pm->buckets = calloc(n_buckets, sizeof(struct pm_bucket*));
+    printf("alloc'd %i buckets\n", n_buckets);
 }
 
-void insert_pixmap(struct pixmap* pm, uint8_t r, uint8_t g, uint8_t b) {
-    (void)pm;
-    (void)r;
-    (void)g;
-    (void)b;
-    /*int bucket_idx = 0;*/
-    /*pm->buckets[*/
+/*there will be ~17M / fudge_factor buckets*/
+/*higher fudge factor will take up less memory*/
+/*TODO: should diskmap be used?*/
+uint32_t which_bucket(struct pixmap* pm, uint8_t* rgb) {
+    uint32_t idx = 0;
+    uint8_t* b_idx = (uint8_t*)&idx;
+    // set r in idx to the 0-(255/fudge_factor) bucket
+    b_idx[0] = rgb[0] / pm->fudge_factor;
+    b_idx[1] = rgb[1] / pm->fudge_factor;
+    b_idx[2] = rgb[2] / pm->fudge_factor;
+    /*printf("r: %i, setting fudged to %i\n", rgb[0], b_idx[0]);*/
+
+    return idx;
+/*
+ *     if fudge_factor == 2
+ *         0: 0
+ *         1: 0
+ *         2: 1
+ *         3: 1
+ *         4: 2
+ *         5: 2
+ * 
+ *         AH! this is the FLOOR of (value / fudge_factor)
+ *         i believe i can just use integer division
+ *         TODO: confirm this
+*/
+}
+
+void insert_pm_entry(struct pm_bucket* pm_b, uint8_t* rgb) {
+    struct pm_entry* pm_e;
+
+    ++pm_b->n_pixels;
+    for (pm_e = pm_b->pixels; pm_e; pm_e = pm_e->next) {
+        if (!memcmp(pm_e->rgb, rgb, 3)) {
+            ++pm_e->n;
+            return;
+        }
+    }
+    pm_e = calloc(1, sizeof(struct pm_entry));
+    memcpy(pm_e->rgb, rgb, 3);
+    pm_e->n = 1;
+}
+
+// rgb is a pointer to r with gb after it
+void insert_pixmap(struct pixmap* pm, uint8_t* rgb) {
+    uint32_t bucket_idx = which_bucket(pm, rgb);
+
+    if (!pm->buckets[bucket_idx]) {
+        pm->buckets[bucket_idx] = calloc(1, sizeof(struct pm_bucket));
+    }
+    insert_pm_entry(pm->buckets[bucket_idx], rgb);
 }
 
 
@@ -61,6 +117,13 @@ int main(int argc, char* argv[]) {
     int width;
     int height;
     uint8_t* data;
+
+    struct pixmap pm;
+    uint8_t rgb[3] = {0, 0, 9};
+    uint8_t* rgbp = rgb;
+    init_pixmap(&pm, 1);
+    insert_pixmap(&pm, rgbp);
+    /*printf("which returned %i\n", which_bucket(&pm, rgbp));*/
 
     if (argc == 1) {
         return EXIT_FAILURE;
