@@ -19,6 +19,7 @@
  */
 struct pixmap{
     uint8_t fudge_factor;
+    uint32_t n_buckets;
 
     // there will be (255 / fudge_factor) buckets
     /*struct pm_entry** buckets;*/
@@ -40,17 +41,19 @@ struct pm_entry{
 };
 
 void init_pixmap(struct pixmap* pm, uint8_t fudge_factor) {
-    uint32_t n_buckets = 0;
-    uint8_t* nb_b = (uint8_t*)&n_buckets;
+    uint8_t* nb_b = (uint8_t*)&pm->n_buckets;
 
+    pm->n_buckets = 0;
     pm->fudge_factor = fudge_factor;
 
     nb_b[0] = 255 / fudge_factor;
     nb_b[1] = 255 / fudge_factor;
     nb_b[2] = 255 / fudge_factor;
 
-    pm->buckets = calloc(n_buckets, sizeof(struct pm_bucket*));
-    printf("alloc'd %i buckets\n", n_buckets);
+    ++pm->n_buckets;
+
+    pm->buckets = calloc(pm->n_buckets, sizeof(struct pm_bucket*));
+    printf("alloc'd %i buckets\n", pm->n_buckets);
 }
 
 /*there will be ~17M / fudge_factor buckets*/
@@ -94,6 +97,8 @@ void insert_pm_entry(struct pm_bucket* pm_b, uint8_t* rgb) {
     pm_e = calloc(1, sizeof(struct pm_entry));
     memcpy(pm_e->rgb, rgb, 3);
     pm_e->n = 1;
+    pm_e->next = pm_b->pixels;
+    pm_b->pixels = pm_e;
 }
 
 // rgb is a pointer to r with gb after it
@@ -106,6 +111,22 @@ void insert_pixmap(struct pixmap* pm, uint8_t* rgb) {
     insert_pm_entry(pm->buckets[bucket_idx], rgb);
 }
 
+void p_pixmap(struct pixmap* pm, _Bool print_all_pixels) {
+    printf("pixmap with fudge factor of %i and %i buckets\n", pm->fudge_factor, pm->n_buckets);
+    for (uint32_t i = 0; i < pm->n_buckets; ++i) {
+        if (!pm->buckets[i]) {
+            continue;
+        }
+        printf("%i: %i pixels\n", i, pm->buckets[i]->n_pixels);
+        if (!print_all_pixels) {
+            continue;
+        }
+        for (struct pm_entry* pm_e = pm->buckets[i]->pixels; pm_e; pm_e = pm_e->next) {
+            printf("(%i,%i,%i): %i\n", pm_e->rgb[0], pm_e->rgb[1], pm_e->rgb[2], pm_e->n);
+        }
+    }
+}
+
 
 /*
  * analyze all pixels, 
@@ -113,21 +134,17 @@ void insert_pixmap(struct pixmap* pm, uint8_t* rgb) {
 */
 
 int main(int argc, char* argv[]) {
+    struct pixmap pm;
     ILuint img_id;
     int width;
     int height;
     uint8_t* data;
 
-    struct pixmap pm;
-    uint8_t rgb[3] = {0, 0, 9};
-    uint8_t* rgbp = rgb;
-    init_pixmap(&pm, 1);
-    insert_pixmap(&pm, rgbp);
-    /*printf("which returned %i\n", which_bucket(&pm, rgbp));*/
-
     if (argc == 1) {
         return EXIT_FAILURE;
     }
+
+    init_pixmap(&pm, 60);
 
     ilInit();
 	ilGenImages(1, &img_id);
@@ -142,7 +159,7 @@ int main(int argc, char* argv[]) {
     data = malloc(width * height * 3);
 
     printf("image of size: %i X %i\n", width, height);
-    printf("copy returned: %i\n", ilCopyPixels(0, 0, 0, width, height, 1, IL_RGB, IL_UNSIGNED_BYTE, data));
+    ilCopyPixels(0, 0, 0, width, height, 1, IL_RGB, IL_UNSIGNED_BYTE, data);
 
     /*
      * i can make a map of all RGB combos - no should define a hashmap implementation
@@ -152,8 +169,12 @@ int main(int argc, char* argv[]) {
     // [4] - [8] is second row
     // LEFT TO RIGHT
     for (int i = 0; i < width * height; ++i) {
+        insert_pixmap(&pm, data + (i * 3));
         /*printf("data[%i]: [%i,%i,%i]\n", i, data[(i * 3)], data[1 + (i * 3)], data[2 + (i * 3)]);*/
     }
+
+    p_pixmap(&pm, 0);
+
 	ilDeleteImages(1, &img_id);
 
 }
