@@ -158,6 +158,26 @@ struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b) {
     return pm;
 }
 
+// not sure which parts of this setup must be done multiple times
+uint8_t* img_data(char* fn, int* datasz, int* width, int* height) {
+    uint8_t* data;
+    ILuint img_id;
+    /*ilInit();*/
+	ilGenImages(1, &img_id);
+	ilBindImage(img_id);
+	if (!ilLoadImage(fn)) {
+        puts("failed to open image");
+        return NULL;
+	}
+
+    *width = ilGetInteger(IL_IMAGE_WIDTH);
+    *height = ilGetInteger(IL_IMAGE_HEIGHT);
+    *datasz = *width * *height * 3;
+    data = malloc(*datasz);
+
+    ilCopyPixels(0, 0, 0, *width, *height, 1, IL_RGB, IL_UNSIGNED_BYTE, data);
+    return data;
+}
 
 /*write diff finder of two pixmaps! or maybe diff of two datums and build variable fuzziness maps*/
 int main(int argc, char* argv[]) {
@@ -173,6 +193,7 @@ int main(int argc, char* argv[]) {
 
     init_pixmap(&pm, 60);
 
+    // keep this here, will only init once
     ilInit();
 	ilGenImages(1, &img_id);
 	ilBindImage(img_id);
