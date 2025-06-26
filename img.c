@@ -117,12 +117,12 @@ void p_pixmap(struct pixmap* pm, _Bool print_all_pixels) {
         if (!pm->buckets[i]) {
             continue;
         }
-        printf("%i: %i pixels\n", i, pm->buckets[i]->n_pixels);
+        printf("  %i: %i pixels\n", i, pm->buckets[i]->n_pixels);
         if (!print_all_pixels) {
             continue;
         }
         for (struct pm_entry* pm_e = pm->buckets[i]->pixels; pm_e; pm_e = pm_e->next) {
-            printf("(%i,%i,%i): %i\n", pm_e->rgb[0], pm_e->rgb[1], pm_e->rgb[2], pm_e->n);
+            printf("    (%i,%i,%i): %i\n", pm_e->rgb[0], pm_e->rgb[1], pm_e->rgb[2], pm_e->n);
         }
     }
 }
@@ -179,50 +179,46 @@ uint8_t* img_data(char* fn, int* datasz, int* width, int* height) {
     return data;
 }
 
+void build_pixmap(uint8_t* data, int w, int h, struct pixmap* pm) {
+    for (int i = 0; i < w * h; ++i) {
+        insert_pixmap(pm, data + (i * 3));
+        /*printf("data[%i]: [%i,%i,%i]\n", i, data[(i * 3)], data[1 + (i * 3)], data[2 + (i * 3)]);*/
+    }
+}
+
+struct pixmap* img_to_pixmap(char* fn, uint8_t fudge_factor) {
+    struct pixmap* pm = malloc(sizeof(struct pixmap));
+    int width, height, datasz;
+    uint8_t* data = img_data(fn, &datasz, &width, &height);
+
+    init_pixmap(pm, fudge_factor);
+
+    printf("image of size: %i X %i\n", width, height);
+
+    build_pixmap(data, width, height, pm);
+
+    return pm;
+}
+
 /*write diff finder of two pixmaps! or maybe diff of two datums and build variable fuzziness maps*/
 int main(int argc, char* argv[]) {
-    struct pixmap pm;
+    struct pixmap* pm, * pm_a;
     ILuint img_id;
-    int width;
-    int height;
-    uint8_t* data;
 
     if (argc == 1) {
         return EXIT_FAILURE;
     }
 
-    init_pixmap(&pm, 60);
-
-    // keep this here, will only init once
     ilInit();
-	ilGenImages(1, &img_id);
-	ilBindImage(img_id);
-	if (!ilLoadImage(argv[1])) {
-        puts("failed to open image");
-		return EXIT_FAILURE;
-	}
+    /*init_pixmap(&pm, 60);*/
+    pm = img_to_pixmap(argv[1], 10);
+    pm_a = img_to_pixmap(argv[2], 10);
 
-    width = ilGetInteger(IL_IMAGE_WIDTH);
-    height = ilGetInteger(IL_IMAGE_HEIGHT);
-    data = malloc(width * height * 3);
+    puts("");
+    p_pixmap(pm, 0);
+    p_pixmap(pm_a, 0);
 
-    printf("image of size: %i X %i\n", width, height);
-    ilCopyPixels(0, 0, 0, width, height, 1, IL_RGB, IL_UNSIGNED_BYTE, data);
-
-    /*
-     * i can make a map of all RGB combos - no should define a hashmap implementation
-     */
-
-    // this works on a row / WIDTH first basis - [0] -> [4] is first row
-    // [4] - [8] is second row
-    // LEFT TO RIGHT
-    for (int i = 0; i < width * height; ++i) {
-        insert_pixmap(&pm, data + (i * 3));
-        /*printf("data[%i]: [%i,%i,%i]\n", i, data[(i * 3)], data[1 + (i * 3)], data[2 + (i * 3)]);*/
-    }
-
-    p_pixmap(&pm, 0);
-    pixmap_diff(&pm, &pm);
+    pixmap_diff(pm, pm);
 
 	ilDeleteImages(1, &img_id);
 
