@@ -135,6 +135,7 @@ void p_pixmap(struct pixmap* pm, _Bool print_all_pixels) {
 
 struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b, _Bool additive_only) {
     struct pixmap* pm, * valid_pm;
+    uint8_t* valid_rgb;
     int a_tmp, b_tmp;
 
 
@@ -157,11 +158,12 @@ struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b, _Bool addit
             }
             valid_pm = a_tmp ? pm_a : pm_b;
 
-            printf("discrepency found in bucket %i of [%i, %i]\n", i, a_tmp, b_tmp);
-            printf("  example value of: (%i,%i,%i)\n", 
-                   valid_pm->buckets[i]->pixels->rgb[0], valid_pm->buckets[i]->pixels->rgb[1], valid_pm->buckets[i]->pixels->rgb[2]);
+            valid_rgb = valid_pm->buckets[i]->pixels->rgb;
 
-            printf("\033[38;2;%i;%i;%im%s\033[0m\n", 255, 0, 0, "*****");
+            printf("discrepency found in bucket %i of [%i, %i]\n", i, a_tmp, b_tmp);
+            printf("  example value of: (%i,%i,%i)\n", valid_rgb[0], valid_rgb[1], valid_rgb[2]);
+
+            printf("\033[38;2;%i;%i;%im%s\033[0m\n", valid_rgb[0], valid_rgb[1], valid_rgb[2], "*****");
 
             /*
              * print out additive or subtractive maybe. OR MAYBE DO also print discrepencies, but i think maybe just when one is nonexistent and
@@ -226,9 +228,8 @@ int main(int argc, char* argv[]) {
 
     ilInit();
     /*init_pixmap(&pm, 60);*/
-    img_a = img_to_pixmap(argv[1], 10);
-
-    img_b = img_to_pixmap(argv[2], 10);
+    img_a = img_to_pixmap(argv[1], 50);
+    img_b = img_to_pixmap(argv[2], 50);
 
     /*p_pixmap(pm, 0);*/
 
