@@ -53,7 +53,7 @@ void init_pixmap(struct pixmap* pm, uint8_t fudge_factor) {
     ++pm->n_buckets;
 
     pm->buckets = calloc(pm->n_buckets, sizeof(struct pm_bucket*));
-    printf("alloc'd %i buckets\n", pm->n_buckets);
+    /*printf("alloc'd %i buckets\n", pm->n_buckets);*/
 }
 
 /*there will be ~17M / fudge_factor buckets*/
@@ -133,8 +133,8 @@ void p_pixmap(struct pixmap* pm, _Bool print_all_pixels) {
  * count number of pixels of each color - make a map!
 */
 
-struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b) {
-    struct pixmap* pm;
+struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b, _Bool additive_only) {
+    struct pixmap* pm, * valid_pm;
     int a_tmp, b_tmp;
 
 
@@ -149,9 +149,24 @@ struct pixmap* pixmap_diff(struct pixmap* pm_a, struct pixmap* pm_b) {
         a_tmp = pm_a->buckets[i] ? pm_a->buckets[i]->n_pixels : 0;
         b_tmp = pm_b->buckets[i] ? pm_b->buckets[i]->n_pixels : 0;
 
+
+        // TODO: maybe only print if additive or subtractive - only if one entry is 0!
         if (a_tmp != b_tmp) {
-            printf("FOUND DISCREPANCY in bucket %i with example value of: (%i,%i,%i)\n", i,
-                   pm_a->buckets[i]->pixels->rgb[0], pm_a->buckets[i]->pixels->rgb[1], pm_a->buckets[i]->pixels->rgb[2]);
+            if (additive_only && a_tmp && b_tmp) {
+                continue;
+            }
+            valid_pm = a_tmp ? pm_a : pm_b;
+
+            printf("discrepency found in bucket %i of [%i, %i]\n", i, a_tmp, b_tmp);
+            printf("  example value of: (%i,%i,%i)\n", 
+                   valid_pm->buckets[i]->pixels->rgb[0], valid_pm->buckets[i]->pixels->rgb[1], valid_pm->buckets[i]->pixels->rgb[2]);
+
+            printf("\033[38;2;%i;%i;%im%s\033[0m\n", 255, 0, 0, "*****");
+
+            /*
+             * print out additive or subtractive maybe. OR MAYBE DO also print discrepencies, but i think maybe just when one is nonexistent and
+             * one does exist
+            */
         }
     }
 
@@ -193,7 +208,7 @@ struct pixmap* img_to_pixmap(char* fn, uint8_t fudge_factor) {
 
     init_pixmap(pm, fudge_factor);
 
-    printf("image of size: %i X %i\n", width, height);
+    /*printf("image of size: %i X %i\n", width, height);*/
 
     build_pixmap(data, width, height, pm);
 
@@ -202,25 +217,22 @@ struct pixmap* img_to_pixmap(char* fn, uint8_t fudge_factor) {
 
 /*write diff finder of two pixmaps! or maybe diff of two datums and build variable fuzziness maps*/
 int main(int argc, char* argv[]) {
-    struct pixmap* pm, * pm_a;
+    struct pixmap* img_a, * img_b;
     ILuint img_id;
 
-    if (argc == 1) {
+    if (argc < 3) {
         return EXIT_FAILURE;
     }
 
     ilInit();
     /*init_pixmap(&pm, 60);*/
-    pm = img_to_pixmap(argv[1], 10);
-    pm_a = img_to_pixmap(argv[2], 10);
+    img_a = img_to_pixmap(argv[1], 10);
 
-    puts("");
-    p_pixmap(pm, 0);
-    p_pixmap(pm_a, 0);
+    img_b = img_to_pixmap(argv[2], 10);
 
-    pixmap_diff(pm, pm);
+    /*p_pixmap(pm, 0);*/
+
+    pixmap_diff(img_a, img_b, 1);
 
 	ilDeleteImages(1, &img_id);
-
 }
-
